@@ -20,6 +20,7 @@ import { getMailboxIdByAddress } from '../db/index.js';
 export async function handleEmailsApi(request, db, url, path, options) {
   const isMock = !!options.mockOnly;
   const isMailboxOnly = !!options.mailboxOnly;
+  const autoDeleteOnRead = !!options.autoDeleteOnRead;
 
   // 获取邮件列表
   if (path === '/api/emails' && request.method === 'GET') {
@@ -147,14 +148,18 @@ export async function handleEmailsApi(request, db, url, path, options) {
         }
         return errorResponse('未找到邮件', 404);
       }
-      await db.prepare(`UPDATE messages SET is_read = 1 WHERE id = ?`).bind(emailId).run();
       const row = results[0];
+      await db.prepare(`UPDATE messages SET is_read = 1 WHERE id = ?`).bind(emailId).run();
+      if (autoDeleteOnRead) {
+        await db.prepare(`DELETE FROM messages WHERE id = ?`).bind(emailId).run();
+      }
 
       return Response.json({
         ...row,
         content: row.content || '',
         html_content: row.html_content || '',
-        download: ''
+        download: '',
+        auto_deleted: autoDeleteOnRead
       });
     } catch (e) {
       console.error('获取邮件详情失败:', e);

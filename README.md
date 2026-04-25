@@ -83,6 +83,7 @@
 | EMAIL_WEBHOOK_SECRET | 收信 Webhook 鉴权密钥，需与后端保持一致 | 否 |
 | EMAIL_WEBHOOK_TIMEOUT_MS | 收信 Webhook 请求超时（毫秒，默认 `10000`） | 否 |
 | FORWARD_RULES | 邮件转发规则 | 否 |
+| AUTO_DELETE_ON_READ | 读信接口返回详情后立即删除该邮件；支持 `true/1/yes/on` | 否 |
 
 <details>
 <summary><strong>RESEND_API_KEY 配置格式</strong></summary>
@@ -111,6 +112,20 @@ RESEND_API_KEY='{"domain1.com":"re_key1","domain2.com":"re_key2"}'
 - 适合将邮件交给你自己的服务做解析、提取验证码、存 Redis/数据库
 
 如果任意一个未配置，则保持原有 **D1 入库模式**。
+
+### 读信后自动删除
+
+设置下面的环境变量后，用户或管理员通过邮件详情接口读取邮件时，系统会先返回完整内容，再立即从 `messages` 表删除该邮件：
+
+```bash
+AUTO_DELETE_ON_READ="true"
+```
+
+说明：
+
+- 删除动作发生在 **查看详情**（`GET /api/email/:id`）之后，不是列表页刷新之后
+- 当前请求仍能拿到邮件正文；后续再次打开同一封邮件会返回不存在
+- 适合一次性验证码邮箱场景，不适合需要长期保留历史邮件的场景
 
 ### 部署后如何配置
 

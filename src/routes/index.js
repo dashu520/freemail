@@ -234,12 +234,16 @@ async function delegateApiRequest(context) {
   const ADMIN_NAME = String(env.ADMIN_NAME || 'admin').trim().toLowerCase();
 
   // 访客只允许读取模拟数据
+  const AUTO_DELETE_ON_READ = String(env.AUTO_DELETE_ON_READ || '').trim().toLowerCase();
+  const autoDeleteOnRead = ['1', 'true', 'yes', 'on'].includes(AUTO_DELETE_ON_READ);
+
   if ((authPayload.role || 'admin') === 'guest') {
     return handleApiRequest(request, DB, MAIL_DOMAINS, {
       mockOnly: true,
       resendApiKey: RESEND_API_KEY,
       adminName: ADMIN_NAME,
-      authPayload
+      authPayload,
+      autoDeleteOnRead
     });
   }
 
@@ -250,7 +254,8 @@ async function delegateApiRequest(context) {
       resendApiKey: RESEND_API_KEY,
       adminName: ADMIN_NAME,
       authPayload,
-      mailboxOnly: true
+      mailboxOnly: true,
+      autoDeleteOnRead
     });
   }
 
@@ -258,7 +263,8 @@ async function delegateApiRequest(context) {
     mockOnly: false,
     resendApiKey: RESEND_API_KEY,
     adminName: ADMIN_NAME,
-    authPayload
+    authPayload,
+    autoDeleteOnRead
   });
 }
 
