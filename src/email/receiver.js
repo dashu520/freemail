@@ -5,7 +5,8 @@
 
 import { extractEmail, normalizeEmailAlias } from '../utils/common.js';
 import { getOrCreateMailboxId } from '../db/index.js';
-import { parseEmailBody, extractVerificationCode } from './parser.js';
+import { extractVerificationCode } from './parser.js';
+import { isWebhookEnabled, forwardHttpEmailToWebhook } from './webhook.js';
 
 /**
  * 处理通过 HTTP 接收的邮件
@@ -17,6 +18,12 @@ import { parseEmailBody, extractVerificationCode } from './parser.js';
 export async function handleEmailReceive(request, db, env) {
   try {
     const emailData = await request.json();
+
+    if (isWebhookEnabled(env)) {
+      const result = await forwardHttpEmailToWebhook(emailData, env);
+      return Response.json({ success: true, mode: 'webhook', result });
+    }
+
     const to = String(emailData?.to || '');
     const from = String(emailData?.from || '');
     const subject = String(emailData?.subject || '(无主题)');
@@ -50,7 +57,7 @@ export async function handleEmailReceive(request, db, env) {
       html || null
     ).run();
 
-    return Response.json({ success: true });
+    return Response.json({ success: true, mode: 'd1' });
   } catch (error) {
     console.error('处理邮件时出错:', error);
     return new Response('处理邮件失败', { status: 500 });

@@ -17,6 +17,7 @@ import { extractEmail, normalizeEmailAlias, normalizeDomainList } from './utils/
 import { forwardByLocalPart, forwardByMailboxConfig } from './email/forwarder.js';
 import { parseEmailBody, extractVerificationCode } from './email/parser.js';
 import { getForwardTarget } from './db/mailboxes.js';
+import { isWebhookEnabled, forwardWorkerEmailToWebhook } from './email/webhook.js';
 
 export default {
   /**
@@ -62,6 +63,16 @@ export default {
    * @returns {Promise<void>}
    */
   async email(message, env, ctx) {
+    if (isWebhookEnabled(env)) {
+      try {
+        await forwardWorkerEmailToWebhook(message, env);
+        return;
+      } catch (error) {
+        console.error('邮件 Webhook 转发失败:', error);
+        return;
+      }
+    }
+
     // 获取数据库连接
     let DB;
     try {

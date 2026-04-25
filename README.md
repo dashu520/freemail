@@ -79,6 +79,9 @@
 | ADMIN_NAME | 严格管理员用户名（默认 `admin`） | 否 |
 | JWT_TOKEN | JWT 签名密钥 | 是 |
 | RESEND_API_KEY | Resend 发件密钥，支持多域名配置 | 否 |
+| EMAIL_WEBHOOK_URL | 收信后转发到外部 API 的基础地址，例如 `https://your-domain.com`；需要你填的EMAIL_WEBHOOK_URL有公网访问 | 否 |
+| EMAIL_WEBHOOK_SECRET | 收信 Webhook 鉴权密钥，将放在 `X-Webhook-Secret` 请求头中，需与后端保持一致 | 否 |
+| EMAIL_WEBHOOK_TIMEOUT_MS | 收信 Webhook 请求超时（毫秒，默认 `10000`） | 否 |
 | FORWARD_RULES | 邮件转发规则 | 否 |
 
 <details>
@@ -96,6 +99,60 @@ RESEND_API_KEY='{"domain1.com":"re_key1","domain2.com":"re_key2"}'
 ```
 
 系统会根据发件人域名自动选择对应的 API 密钥。
+</details>
+
+<details>
+<summary><strong>EMAIL_WEBHOOK_* 配置说明</strong></summary>
+
+当且仅当 `EMAIL_WEBHOOK_URL` 和 `EMAIL_WEBHOOK_SECRET` 同时非空时，Freemail 会启用 **Webhook 收信模式**：
+
+- 收到邮件后，直接转发到你的后端 API
+- **不再写入 D1**
+- 适合将邮件交给你自己的服务做解析、提取验证码、存 Redis/数据库
+
+如果任意一个未配置，则保持原有 **D1 入库模式**。
+
+### 部署后如何配置
+
+如果你是通过顶部 **Deploy to Cloudflare Workers** 按钮一键部署，通常需要在部署完成后手动进入：
+
+`Workers & Pages` → 你的 Worker → `Settings` → `Variables`
+
+添加以下环境变量：
+
+```bash
+EMAIL_WEBHOOK_URL="https://your-domain.com/api/webhook/email"
+EMAIL_WEBHOOK_SECRET="your-secret"
+EMAIL_WEBHOOK_TIMEOUT_MS="10000"
+```
+
+### Webhook 请求格式
+
+请求示例：
+
+```http
+POST /api/webhook/email
+X-Webhook-Secret: your-secret
+Content-Type: application/json
+```
+
+请求体：
+
+```json
+{
+  "message_id": "<example-message-id@example.com>",
+  "to_addr": "target@example.com",
+  "raw_content": "完整 RFC822 原始邮件内容"
+}
+```
+
+### 字段说明
+
+- `message_id`：优先取邮件头 `Message-ID`，取不到时自动生成
+- `to_addr`：会先做别名归一化，再传给你的后端
+- `raw_content`：优先传原始邮件；若是 HTTP `/receive` 接口且上游未提供 `raw_content`，系统会根据 `to/from/subject/text/html` 自动拼出一份 RFC822 格式内容
+- `EMAIL_WEBHOOK_TIMEOUT_MS`：Webhook 请求超时，单位毫秒，默认 `10000`
+
 </details>
 
 <details>
@@ -169,6 +226,13 @@ wrangler d1 execute TEMP_MAIL_DB --command "SELECT * FROM mailboxes LIMIT 10"
 
 <p align="left">
   <img src="pic/alipay.jpg" alt="支付宝赞赏码" height="400" />
+  <img src="pic/weichat.jpg" alt="微信赞赏码" height="400" />
+</p>
+
+## 许可证
+
+Apache-2.0 license
+00" />
   <img src="pic/weichat.jpg" alt="微信赞赏码" height="400" />
 </p>
 

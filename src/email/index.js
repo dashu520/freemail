@@ -17,3 +17,8 @@ export {
 } from './sender.js';
 export { forwardByLocalPart, forwardByMailboxConfig } from './forwarder.js';
 export { handleEmailReceive } from './receiver.js';
+export {
+  isWebhookEnabled,
+  forwardWorkerEmailToWebhook,
+  forwardHttpEmailToWebhook
+} from './webhook.js';
